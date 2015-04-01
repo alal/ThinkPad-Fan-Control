@@ -52,7 +52,7 @@
                     <child>
                       <widget class="GtkLabel" id="optionsLabel">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">Current options: 120, 55, 50, full-speed</property>
+                        <property name="label" translatable="yes">Current options: 10, 55, 45, 7</property>
                       </widget>
                     </child>
                     <child>
@@ -71,7 +71,7 @@
                         <child>
                           <widget class="GtkComboBox" id="autoSpeed">
                             <property name="visible">True</property>
-                            <property name="items" translatable="yes">auto
+                            <property name="items" translatable="yes">0
 1
 2
 3
@@ -79,6 +79,7 @@
 5
 6
 7
+auto
 full speed</property>
                           </widget>
                           <packing>
@@ -104,7 +105,7 @@ full speed</property>
                           <widget class="GtkSpinButton" id="safe">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="adjustment">50 30 100 1 10 10</property>
+                            <property name="adjustment">45 30 100 1 10 10</property>
                           </widget>
                           <packing>
                             <property name="left_attach">2</property>
@@ -134,7 +135,7 @@ full speed</property>
                           <widget class="GtkSpinButton" id="sleep">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="adjustment">120 1 1000 5 10 10</property>
+                            <property name="adjustment">20 1 1000 5 10 10</property>
                           </widget>
                           <packing>
                             <property name="left_attach">2</property>
@@ -254,7 +255,7 @@ full speed</property>
                 <child>
                   <widget class="GtkComboBox" id="speed">
                     <property name="visible">True</property>
-                    <property name="items" translatable="yes">auto
+                    <property name="items" translatable="yes">0
 1
 2
 3
@@ -262,6 +263,7 @@ full speed</property>
 5
 6
 7
+auto
 full speed</property>
                   </widget>
                   <packing>

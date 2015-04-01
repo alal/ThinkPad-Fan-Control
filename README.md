@@ -24,6 +24,10 @@ I wrote this for my own personal use, and thought that it would be a good idea
 to release it to the world, and hope that it will be useful to someone!
 Feel free to send comments, bug reports or a thanks to the e-mail above.
 
+WARN
+---------------------
+This program monitor CPU temperature only. Other things like GPU and battery
+is ignored. You have been warned.
 
 COMPILATION
 ---------------------

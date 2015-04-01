@@ -7,7 +7,7 @@
     <property name="page_increment">10</property>
     <property name="step_increment">1</property>
     <property name="page_size">10</property>
-    <property name="value">50</property>
+    <property name="value">45</property>
   </object>
   <object class="GtkAdjustment" id="adjustment2">
     <property name="upper">100</property>
@@ -23,7 +23,7 @@
     <property name="page_increment">10</property>
     <property name="step_increment">5</property>
     <property name="page_size">10</property>
-    <property name="value">120</property>
+    <property name="value">20</property>
   </object>
   <object class="GtkListStore" id="model1">
     <columns>
@@ -31,7 +31,7 @@
     </columns>
     <data>
       <row>
-        <col id="0">auto</col>
+        <col id="0">0</col>
       </row>
       <row>
         <col id="0">1</col>
@@ -53,6 +53,9 @@
       </row>
       <row>
         <col id="0">7</col>
+      </row>
+      <row>
+        <col id="0">auto</col>
       </row>
       <row>
         <col id="0">full speed</col>
@@ -65,7 +68,7 @@
     </columns>
     <data>
       <row>
-        <col id="0">auto</col>
+        <col id="0">0</col>
       </row>
       <row>
         <col id="0">1</col>
@@ -87,6 +90,9 @@
       </row>
       <row>
         <col id="0">7</col>
+      </row>
+      <row>
+        <col id="0">auto</col>
       </row>
       <row>
         <col id="0">full speed</col>
@@ -143,7 +149,7 @@
                     <child>
                       <object class="GtkLabel" id="optionsLabel">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">Current options: 120, 55, 50, full-speed</property>
+                        <property name="label" translatable="yes">Current options: 10, 55, 45, 7</property>
                       </object>
                     </child>
                     <child>

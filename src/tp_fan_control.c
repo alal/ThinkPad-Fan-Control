@@ -2,11 +2,11 @@
 ThinkPad fan control
 Copyright 2008, Stanko Tadić <stanko@mfhinc.net>
 
-ThinkPad fan control is free software; you can redistribute it 
-and/or modify it under the terms of the GNU General Public License 
-version 2 as published by the Free Software Foundation.  
-Note that I am not granting permission to redistribute or 
-modify ThinkPad fan control under the terms of any later version of the 
+ThinkPad fan control is free software; you can redistribute it
+and/or modify it under the terms of the GNU General Public License
+version 2 as published by the Free Software Foundation.
+Note that I am not granting permission to redistribute or
+modify ThinkPad fan control under the terms of any later version of the
 General Public License.
 
 ThinkPad fan control is distributed in the hope that it will be useful, but WITHOUT
@@ -26,10 +26,13 @@ MA 02111, USA.
 #include <unistd.h>
 #include <gtk/gtk.h>
 
-#define AUTO 10
-#define FORCED 100
-#define FULL_SPEED 8
+#define AUTO 10  // auto in auto mode
+#define FORCED 100  // critical in auto mode
 
+#define AUTO_SPEED 8
+#define FULL_SPEED 9
+
+#define MIN_SANE_CRITICAL_SPEED 3
 
 /* location of UI XML file relative to path in which program is running */
 #define BUILDER_XML_FILE "data/gtk_gui.xml"
@@ -44,9 +47,9 @@ GtkButton *run, *exitButton, *hide, *speedButton;
 GtkStatusIcon *tray_icon;
 
 // global variables
-int visible = 1, running = 1, errorTemp=0, manual=0;
+int visible = 1, manual=0;
 int fansLevel = AUTO;
-int sleepTime = 120, criticalTemp = 55, safeTemp = 50, autoSpeedValue = 7;
+int sleepTime = 10, criticalTemp = 55, safeTemp = 45, autoSpeedValue = 7;
 gint timeout;
 
 /****** FUNCTIONS *******/
@@ -86,15 +89,15 @@ int main (int argc, char *argv[]){
     exitButton = GTK_BUTTON (gtk_builder_get_object (builder, "exit"));
     speedButton = GTK_BUTTON (gtk_builder_get_object (builder, "speedButton"));
     hide = GTK_BUTTON (gtk_builder_get_object (builder, "hide"));
-    sleepField = GTK_SPIN_BUTTON (gtk_builder_get_object (builder, "sleep"));  
-    criticalField = GTK_SPIN_BUTTON (gtk_builder_get_object (builder, "critical"));  
-    safeField = GTK_SPIN_BUTTON (gtk_builder_get_object (builder, "safe"));  
+    sleepField = GTK_SPIN_BUTTON (gtk_builder_get_object (builder, "sleep"));
+    criticalField = GTK_SPIN_BUTTON (gtk_builder_get_object (builder, "critical"));
+    safeField = GTK_SPIN_BUTTON (gtk_builder_get_object (builder, "safe"));
     txtLog = GTK_LABEL (gtk_builder_get_object (builder, "log"));
     optionsLabel = GTK_LABEL (gtk_builder_get_object (builder, "optionsLabel"));
-    statusbar = GTK_STATUSBAR (gtk_builder_get_object (builder, "statusbar"));  
-    level = GTK_LABEL (gtk_builder_get_object (builder, "level"));  
-    speedValue = GTK_COMBO_BOX (gtk_builder_get_object (builder, "speed"));  
-    autoSpeed = GTK_COMBO_BOX (gtk_builder_get_object (builder, "autoSpeed"));  
+    statusbar = GTK_STATUSBAR (gtk_builder_get_object (builder, "statusbar"));
+    level = GTK_LABEL (gtk_builder_get_object (builder, "level"));
+    speedValue = GTK_COMBO_BOX (gtk_builder_get_object (builder, "speed"));
+    autoSpeed = GTK_COMBO_BOX (gtk_builder_get_object (builder, "autoSpeed"));
 
     // combo boxes default values
     gtk_combo_box_set_active(autoSpeed,7);
@@ -114,7 +117,7 @@ int main (int argc, char *argv[]){
 
     gtk_builder_connect_signals (builder, NULL);
     g_object_unref (G_OBJECT (builder));
-    
+
     gtk_widget_show (window);
 
     // welcome terminal message, and changing fans control to auto at startup
@@ -130,7 +133,7 @@ int main (int argc, char *argv[]){
     timeout = g_timeout_add_seconds(sleepTime,fans,NULL);
 
     gtk_main ();
-    
+
     return 0;
 }
 
@@ -144,25 +147,16 @@ int fans(){
     char message[80];
     char tempMessage[120];
     char tmpString[45];
-    char speedString[15];
 
     // wrong options
     if(safeTemp >= criticalTemp){
-        gtk_label_set_text(txtLog,"CRITICAL TEMPERATURE MUST BE GREATER THAN SAFE TEMPERATURE!");
-        errorTemp=1;
-        gtk_button_set_label(run,"Run auto control");
-        running = 0;
-        return FALSE;
-    }
-
-    // if manual control was active, change fan control back to auto
-    if(manual){
-        change_speed(0);
-        fansLevel = AUTO;
-        manual=0;
+        safeTemp = criticalTemp - 5;
+        printf("** safeTemp change to %d because of higher than criticalTemp", safeTemp);
     }
 
     // reading the CPU temperature
+    // may need change to "/sys/bus/platform/devices/thinkpad_hwmon/temp1_input"(
+    // something like "47000" inside) if the following is deprecated.
     tempInput = fopen("/proc/acpi/ibm/thermal","r");
     if(tempInput ==NULL){
         gtk_label_set_text(txtLog,"YOU ARE NOT RUNNING KERNEL WITH THINKPAD PATCH!");
@@ -179,33 +173,35 @@ int fans(){
     sprintf(message,"Temperature: %dC, Checked at %s",temp,tmpString);
     gtk_statusbar_push(statusbar,0,message);
 
-    // if critical temperature is reached. and fans level is auto
-    if(temp>=criticalTemp && fansLevel==AUTO){
-        switch(autoSpeedValue){
-            case 0: strcpy(speedString,"auto"); break;
-            case 8: strcpy(speedString,"full-speed"); break;
-            default: sprintf(speedString,"%d",autoSpeedValue);
-        }
+    // if safe temperature is reached.
+    if(temp<=safeTemp){
+        fansLevel = AUTO;
+    }
+    // if critical temperature is reached.
+    if(temp>=criticalTemp){
         // changing fans level to one user choosed
         change_speed(autoSpeedValue);
         fansLevel = FORCED;
         // putting log message
-        sprintf(tempMessage,"\n%s\nTemperature is %d, critical is %d\nTurning fans to %s!",tmpString, temp, criticalTemp, speedString);
-        gtk_label_set_text(txtLog,tempMessage);
+        sprintf(tempMessage,"\n%s\nTemperature is %d, critical is %d\nCritical mode in action!", tmpString, temp, criticalTemp);
+        gtk_label_set_text(txtLog, tempMessage);
     }
-    // if safe temperature is reached and fans level are forced by user
-    else if(temp<=safeTemp){
-//  else if(temp<=safeTemp && fansLevel==FORCED){
-        // changing fans level to auto
-        change_speed(0);
+    else if(temp<criticalTemp && fansLevel==AUTO){
+        if(manual){
+            int speed = gtk_combo_box_get_active (speedValue);
+            change_speed(speed);
+        }
+        else{
+            change_speed(AUTO_SPEED);
+        }
         fansLevel = AUTO;
         // putting log message
-        sprintf(tempMessage,"\n%s\nTemperature is %d, safe is %d\nTurning fans to auto!",tmpString,temp,safeTemp);
-        gtk_label_set_text(txtLog,tempMessage);
+        sprintf(tempMessage,"\n%s\nTemperature is %d, critical is %d\nAuto/Manual is working.", tmpString, temp, criticalTemp);
+        gtk_label_set_text(txtLog, tempMessage);
     }
-    else if(errorTemp){
-        gtk_label_set_text(txtLog,"");
-        errorTemp=0;
+    else if(temp<criticalTemp && fansLevel==FORCED){
+        sprintf(tempMessage,"\n%s\nTemperature is %d, safe is %d\nWaitting to reach safe!", tmpString, temp, safeTemp);
+        gtk_label_set_text(txtLog, tempMessage);
     }
     return TRUE;
 }
@@ -218,23 +214,29 @@ void run_clicked(){
     criticalTemp = gtk_spin_button_get_value_as_int (criticalField);
     safeTemp = gtk_spin_button_get_value_as_int (safeField);
     autoSpeedValue = gtk_combo_box_get_active (autoSpeed);
+
+    if (autoSpeedValue < MIN_SANE_CRITICAL_SPEED){
+        autoSpeedValue = MIN_SANE_CRITICAL_SPEED;
+        printf("** autoSpeedValue change to %d because of lower than MIN_SANE_CRITICAL_SPEED", autoSpeedValue);
+    }
+
     sleepTime = gtk_spin_button_get_value_as_int (sleepField);
     fans();
-    if(running == 1){
+
+    if(manual == 1){
+        manual = 0;
+        gtk_statusbar_push(statusbar,0,"Manual control is off!");
+        gtk_button_set_label(run,"Change options");
+    }
+    else{
         gtk_timeout_remove(timeout);
         if(fansLevel==FORCED)
             change_speed(autoSpeedValue);
         timeout = g_timeout_add_seconds(sleepTime,fans,NULL);
-    }
-    else{
-        timeout = g_timeout_add_seconds(sleepTime,fans,NULL);
-        running = 1;
-    }
 
-    if(!errorTemp){
         switch(autoSpeedValue){
-            case 0: strcpy(speedString,"auto"); break;
-            case 8: strcpy(speedString,"full-speed"); break;
+            case AUTO_SPEED: strcpy(speedString,"auto"); break;
+            case FULL_SPEED: strcpy(speedString,"full-speed"); break;
             default: sprintf(speedString,"%d",autoSpeedValue);
         }
         gtk_button_set_label(run,"Change options");
@@ -282,17 +284,8 @@ static GtkStatusIcon *create_tray_icon() {
 }
 //------------------------------------ MANUAL CHANGE ---------------------------------------------//
 void manual_change (){
-    int speed = gtk_combo_box_get_active (speedValue);
-
-    if(running){
-        gtk_button_set_label(run,"Run auto control");
-        gtk_timeout_remove(timeout);
-        running = 0;
-    }
-
-    change_speed(speed);
     manual = 1;
-    gtk_label_set_text(txtLog,"");
+    gtk_button_set_label(run,"Run auto control");
     gtk_statusbar_push(statusbar,0,"Manual control is active!");
 }
 
@@ -302,17 +295,17 @@ void change_speed(int speed){
     char speedString[15];
 
     switch(speed){
-        case 0: strcpy(speedString,"auto"); break;
-        case 8: strcpy(speedString,"full-speed"); break;
+        case AUTO_SPEED: strcpy(speedString,"auto"); break;
+        case FULL_SPEED: strcpy(speedString,"full-speed"); break;
         default: sprintf(speedString,"%d",speed);
     }
     sprintf(tmpString,"echo level %s > /proc/acpi/ibm/fan",speedString);
     system(tmpString);
     sprintf(tmpString,"Fans level - %s",speedString);
     gtk_label_set_text(level,tmpString);
-    
+
     sprintf(tmpString,"ThinkPad Fan Control .:: level - %s ::.",speedString);
     gtk_status_icon_set_tooltip(tray_icon, tmpString);
-    
+
     printf("** Speed level changed to %s **\n",speedString);
 }
